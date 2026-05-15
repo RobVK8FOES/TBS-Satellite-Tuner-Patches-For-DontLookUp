@@ -1,0 +1,12 @@
+diff --git a/drivers/media/usb/dvb-usb/tbs5925.c b/drivers/media/usb/dvb-usb/tbs5925.c
+index a1b2c3d..e4f5g6h 100644
+--- a/drivers/media/usb/dvb-usb/tbs5925.c
++++ b/drivers/media/usb/dvb-usb/tbs5925.c
+@@ -370,6 +370,7 @@ static struct dvb_usb_device_properties tbs5925_properties = {
+ 	.adapter = {{
+ 		.num_frontends = 1,
+ 		.fe = {{
++			.caps = DVB_USB_ADAP_RECEIVES_RAW_PAYLOAD,
+ 			.frontend_attach = tbs5925_frontend_attach,
+ 			.streaming_ctrl = NULL,
+ 			.tuner_attach = tbs5925_tuner_attach,
