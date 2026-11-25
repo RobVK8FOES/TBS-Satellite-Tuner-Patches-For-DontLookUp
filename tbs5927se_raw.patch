@@ -1,0 +1,25 @@
+--- a/dvb-usb/tbs5927se.c
++++ b/dvb-usb/tbs5927se.c
+@@ -21,4 +21,8 @@
+ 
+ DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
+ 
++static int raw_mode;
++module_param(raw_mode, int, 0644);
++MODULE_PARM_DESC(raw_mode, "enable raw payload capture without TS sync/PID filtering (0=off, 1=on)");
++
+ static int tbs5927se_op_rw(struct usb_device *dev, u8 request, u16 value,
+@@ -310,6 +314,13 @@
+ static int tbs5927se_probe(struct usb_interface *intf,
+ 		const struct usb_device_id *id)
+ {
++	if (raw_mode)
++		tbs5927se_properties.adapter[0].fe[0].caps |=
++			DVB_USB_ADAP_RECEIVES_RAW_PAYLOAD;
++	else
++		tbs5927se_properties.adapter[0].fe[0].caps &=
++			~DVB_USB_ADAP_RECEIVES_RAW_PAYLOAD;
++
+ 	if (0 == dvb_usb_device_init(intf, &tbs5927se_properties,
+ 			THIS_MODULE, NULL, adapter_nr)) {
+ 		return 0;

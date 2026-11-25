@@ -1,0 +1,76 @@
+--- a/frontends/avl62x1.c
++++ b/frontends/avl62x1.c
+@@ -14,2 +14,4 @@
+ module_param(stream, int, 0644);
++struct avl62x1_chip;
++static u16 avl62x1_config_gs_mode(struct avl62x1_chip *chip);
+ MODULE_PARM_DESC(stream, "Output  TS or GS (default:TS) 0 =TS, 1=GS");
+@@ -2554,6 +2556,8 @@
+ 				    r);
+ 		return true;
+ 	}
++	if (stream)
++		avl62x1_config_gs_mode(chip);
+ 	pr_info(KBUILD_MODNAME ": ACM/VCM carrier: TS rate budget %llu -> %llu bit/s (SP symbol rate %u -> %u Hz)\n",
+ 		(unsigned long long)sp_sr * AVL62X1_SP_ACM_BITS_PER_SYMBOL,
+ 		(unsigned long long)cap_sr * AVL62X1_SP_ACM_BITS_PER_SYMBOL,
+@@ -2934,4 +2938,15 @@
+-						 c_AVL62X1_SP_S2X_gse_bbbodyonly1_fullbb0_caddr,
+-						 mode);
+-	return r;
+-}
++						 c_AVL62X1_SP_S2X_gse_bbbodyonly1_fullbb0_caddr,
++						 mode);
++	return r;
++}
++
++static u16 avl62x1_config_gs_mode(struct avl62x1_chip *chip)
++{
++	u16 r = AVL_EC_OK;
++	r |= avl62x1_set_nullpacketoutput(chip, 0);
++	r |= avl62x1_set_isi_filter(chip, 0);
++	r |= avl62x1_config_gsemodeselection(chip, 0x2);
++	r |= avl62x1_set_gs_rawmode(chip, 1);
++	r |= avl62x1_set_BBHeadermode(chip, 0);
++	return r;
++}
+@@ -3730,7 +3745,8 @@
+ 			stream_info.t2mi.pid_autodiscover = 0;
+ 			stream_info.t2mi.pid = (c->AVL62X1_T2MI_CTRL_PROP >> AVL62X1_T2MI_PID_SHIFT) & 0x1fff;
+ 		} */
+-                stream_info.stream_type = avl62x1_transport;
++		stream_info.stream_type = stream ? avl62x1_generic_continuous :
++						   avl62x1_transport;
+ 		stream_info.t2mi.plp_id = 0;
+ 		stream_info.t2mi.raw_mode = 0;
+ 		stream_info.t2mi.pid_autodiscover = 0;
+@@ -3739,2 +3755,7 @@
+ 		priv->acm_carrier = false;
++		if (stream) {
++			avl62x1_config_gs_mode(priv->chip);
++			if (c->stream_id != NO_STREAM_ID_FILTER)
++				avl62x1_set_isi_filter(priv->chip, 1);
++		}
+ 		ret = avl62x1_lock_tp(&carrier_info, &stream_info, AVL_FALSE,
+@@ -3752,6 +3773,11 @@
+ 			*status = FE_HAS_SIGNAL | FE_HAS_CARRIER |
+ 				  FE_HAS_VITERBI | FE_HAS_SYNC | FE_HAS_LOCK;
+ 			priv->tune_state = avl62x1_tune_state_read_status;
++			if (stream) {
++				avl62x1_config_gs_mode(priv->chip);
++				if (c->stream_id != NO_STREAM_ID_FILTER)
++					avl62x1_set_isi_filter(priv->chip, 1);
++			}
+ 			priv->acm_carrier = avl62x1_cap_acm_ts_rate(priv->chip);
+ 			break;
+ 		}
+@@ -4282,7 +4308,2 @@
+-	if(stream){  //set output gs/gse
+-		avl62x1_set_nullpacketoutput(priv->chip,0);
+-		avl62x1_set_isi_filter(priv->chip,0);
+-		avl62x1_config_gsemodeselection(priv->chip,0x2);
+-		avl62x1_set_gs_rawmode(priv->chip,1);
+-		avl62x1_set_BBHeadermode(priv->chip,0);
+-	}
++	if (stream)  //set output gs/gse
++		avl62x1_config_gs_mode(priv->chip);
